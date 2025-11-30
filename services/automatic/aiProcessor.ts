@@ -1,54 +1,96 @@
-export class AIProcessor {
-  aiEnabled = true;
+import { Shipment } from '../../types';
 
-  async processAutomaticRequest(userMessage: string, userContext: any): Promise<any> {
-    const intent = await this.detectIntent(userMessage);
-    const entities = await this.extractEntities(userMessage);
+interface INlpEngine {
+  detectIntent(text: string): Promise<{ intent: string; confidence: number }>; 
+  extractEntities(text: string): Promise<Record<string, any>>; 
+}
 
-    if (intent === 'create_shipment') {
-      return await this.autoCreateShipment(entities, userContext);
-    } else if (intent === 'track_shipment') {
-      return await this.autoTrackShipment(entities, userContext);
-    } else if (intent === 'cancel_shipment') {
-      return await this.autoCancelShipment(entities, userContext);
-    }
+interface IDecisionMaker {
+  chooseProvider(shipmentData: Partial<Shipment>): Promise<string>; 
+}
 
-    return { type: 'unhandled', message: 'Intent not supported', auto_processed: false };
+class DummyNlpEngine implements INlpEngine {
+  async detectIntent(text: string) {
+    const m = text.toLowerCase();
+    if (/(شحن|ابعث|أرسل|ارسال)/.test(m)) return { intent: 'create_shipment', confidence: 0.9 };
+    if (/(تتبع|track|رقم التتبع)/.test(m)) return { intent: 'track_shipment', confidence: 0.9 };
+    if (/(الغاء|إلغاء|cancel)/.test(m)) return { intent: 'cancel_shipment', confidence: 0.9 };
+    return { intent: 'unknown', confidence: 0.5 };
   }
 
-  async detectIntent(message: string): Promise<string> {
-    const m = message.toLowerCase();
-    if (m.includes('شحن') || m.includes('ابعث') || m.includes('ارسال') || m.includes('أرسل')) return 'create_shipment';
-    if (m.includes('تتبع') || m.includes('track') || m.includes('رقم التتبع')) return 'track_shipment';
-    if (m.includes('الغاء') || m.includes('إلغاء') || m.includes('cancel')) return 'cancel_shipment';
-    return 'unknown';
-  }
+  async extractEntities(text: string) {
+    const entities: Record<string, any> = {};
 
-  async extractEntities(message: string): Promise<any> {
-    const entities: any = {};
-    const numMatch = message.match(/(\d+(?:\.\d+)?)\s*(kg|كيلو|كيلو|كجم)?/i);
-    if (numMatch) entities.weight = parseFloat(numMatch[1]);
+    const weightMatch = text.match(/(\d+(?:[.,]\d+)?)\s*(?:kg|كجم|كيلو|كيلوغرام)?/i);
+    if (weightMatch) entities.weight = parseFloat(weightMatch[1].replace(',', '.'));
 
-    const cityMatch = message.match(/(الى|إلى|من)\s+([\u0621-\u064A\u0620-\u06FFa-zA-Z\s]+)/i);
-    if (cityMatch) {
-      entities.location = cityMatch[2].trim();
-    }
+    const fromMatch = text.match(/من\s+([^\n,\.؟!]+)/i);
+    if (fromMatch) entities.origin = fromMatch[1].trim();
+
+    const toMatch = text.match(/(?:إلى|الى|لـ|ل)\s+([^\n,\.؟!]+)/i);
+    if (toMatch) entities.destination = toMatch[1].trim();
+
+    if (/هدية|هديه/.test(text)) entities.packageType = 'gift';
+    else if (/وثائق|اوراق|وثيقه/.test(text)) entities.packageType = 'documents';
+    else if (/صندوق|طرد|package|parcel/.test(text)) entities.packageType = 'parcel';
+
+    const nameMatch = text.match(/(?:اسمي|أنا|اسمي هو)\s+([^\n,\.؟!]+)/i);
+    if (nameMatch) entities.customerName = nameMatch[1].trim();
 
     return entities;
   }
+}
 
-  hasSufficientData(entities: any): boolean {
+class DummyDecisionMaker implements IDecisionMaker {
+  async chooseProvider(_shipmentData: Partial<Shipment>) {
+    return 'AUTO_PROVIDER';
+  }
+}
+
+export class AIProcessor {
+  private nlp: INlpEngine;
+  private decisionMaker: IDecisionMaker;
+
+  constructor(opts?: { nlpEngine?: INlpEngine; decisionMaker?: IDecisionMaker }) {
+    this.nlp = opts?.nlpEngine ?? new DummyNlpEngine();
+    this.decisionMaker = opts?.decisionMaker ?? new DummyDecisionMaker();
+  }
+
+  async processAutomaticRequest(userMessage: string, userContext: any = {}) {
+    try {
+      const intentRes = await this.nlp.detectIntent(userMessage);
+      const entities = await this.nlp.extractEntities(userMessage);
+
+      const intent = intentRes.intent;
+      const confidence = intentRes.confidence ?? 0.0;
+
+      if (intent === 'create_shipment') {
+        return await this.autoCreateShipment(entities, userContext, confidence);
+      } else if (intent === 'track_shipment') {
+        return await this.autoTrackShipment(entities, userContext, confidence);
+      } else if (intent === 'cancel_shipment') {
+        return await this.autoCancelShipment(entities, userContext, confidence);
+      }
+
+      return { type: 'unhandled', message: 'Intent not supported', auto_processed: false, confidence };
+    } catch (err: any) {
+      return { type: 'error', message: 'Internal processing error', error: err?.message || String(err), auto_processed: false, confidence: 0 };
+    }
+  }
+
+  private hasSufficientData(entities: Record<string, any>): boolean {
     return !!(entities.origin && entities.destination && entities.weight && entities.packageType);
   }
 
-  findMissingData(entities: any): string[] {
+  private findMissingData(entities: Record<string, any>): string[] {
     const required = ['origin', 'destination', 'weight', 'packageType'];
-    return required.filter(k => !entities[k]);
+    return required.filter((k) => !entities[k]);
   }
 
-  async autoCreateShipment(entities: any, userContext: any): Promise<any> {
+  private async autoCreateShipment(entities: Record<string, any>, _userContext: any, confidenceOverride = 0.0) {
     if (this.hasSufficientData(entities)) {
-      const shipment = await this.createShipmentImmediately(entities);
+      const provider = await this.decisionMaker.chooseProvider(entities as Partial<Shipment>);
+      const shipment = await this.createShipmentImmediately(entities, provider);
       const paymentLink = await this.generatePaymentAuto(shipment);
 
       return {
@@ -57,7 +99,7 @@ export class AIProcessor {
         shipment,
         payment_link: paymentLink,
         auto_processed: true,
-        confidence: 0.95
+        confidence: Math.max(0.8, confidenceOverride)
       };
     }
 
@@ -67,36 +109,38 @@ export class AIProcessor {
       message: 'أحتاج بعض المعلومات الإضافية:',
       missing_fields: missing,
       auto_processed: false,
-      confidence: 0.6
+      confidence: confidenceOverride
     };
   }
 
-  async createShipmentImmediately(entities: any): Promise<any> {
+  private async createShipmentImmediately(entities: Record<string, any>, provider: string) {
     const id = 'AUTO-' + Date.now();
-    return {
+    const shipment: Shipment = {
       id,
       trackingNumber: id,
       carrierTracking: '',
-      carrier: 'AUTO',
-      status: 'Created',
-      customerName: entities.customerName || 'Unknown',
-      destination: entities.destination || entities.location || 'Unknown',
-      cost: entities.cost || 0,
-      price: entities.price || 0,
-      source: 'WhatsApp',
+      carrier: (provider as any) ?? ('AUTO' as any),
+      status: (('Created') as any),
+      customerName: entities.customerName ?? 'Unknown',
+      destination: (entities.destination ?? entities.location) ?? 'Unknown',
+      cost: entities.cost ?? 0,
+      price: entities.price ?? 0,
+      source: (entities.source ?? 'WhatsApp') as any,
       date: new Date().toISOString()
     };
+
+    return shipment;
   }
 
-  async generatePaymentAuto(shipment: any): Promise<string> {
-    return `https://pay.example.com/${shipment.id}`;
+  private async generatePaymentAuto(shipment: Shipment) {
+    return `https://pay.example.com/${encodeURIComponent(shipment.id)}`;
   }
 
-  async autoTrackShipment(entities: any): Promise<any> {
-    return { type: 'track', message: 'نتيجة تتبع (اختباري)', auto_processed: true, details: entities };
+  private async autoTrackShipment(entities: Record<string, any>, _ctx: any, _confidence = 0.0) {
+    return { type: 'track', message: 'نتيجة تتبع (تجريبي)', auto_processed: true, details: entities };
   }
 
-  async autoCancelShipment(entities: any): Promise<any> {
-    return { type: 'cancel', message: 'تم إلغاء الشحنة (اختباري)', auto_processed: true, details: entities };
+  private async autoCancelShipment(entities: Record<string, any>, _ctx: any, _confidence = 0.0) {
+    return { type: 'cancel', message: 'تم إلغاء الشحنة (تجريبي)', auto_processed: true, details: entities };
   }
 }
