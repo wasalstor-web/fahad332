@@ -229,11 +229,6 @@ app.get('/api/shipments', async (req, res) => {
   res.json(list);
 });
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ ok: true, uptime: process.uptime(), env: process.env.NODE_ENV || 'development' });
-});
-
 app.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`);
 });

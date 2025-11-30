@@ -68,8 +68,8 @@ EnvironmentFile=/srv/logisa/.env
 ExecStart=/usr/bin/npm run start:backend
 Restart=always
 RestartSec=5
-User=root
-Group=root
+User=www-data
+Group=www-data
 
 [Install]
 WantedBy=multi-user.target
