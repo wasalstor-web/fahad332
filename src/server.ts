@@ -24,7 +24,7 @@ app.post('/api/process-message', async (req, res) => {
       const s = result.shipment;
       await prisma.shipment.create({ data: {
         trackingNumber: s.trackingNumber || s.id,
-        carrier: s.carrier || 'MAPIT',
+        carrier: s.carrier || 'MAPT',
         status: s.status || 'Created',
         customerName: s.customerName || 'Unknown',
         destination: s.destination || 'Unknown',
