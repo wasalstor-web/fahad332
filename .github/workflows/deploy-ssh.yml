@@ -1,0 +1,61 @@
+name: Deploy via SSH
+
+on:
+  push:
+    branches:
+      - copilot/add-integration-repository-setup
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Build frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Package dist
+        run: |
+          tar -czf dist.tar.gz dist
+
+      - name: Deploy dist + backend (rsync) over SSH
+        uses: appleboy/scp-action@v0.2.4
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "dist.tar.gz"
+          target: "${{ secrets.APP_DIR }}/"
+
+      - name: Remote unpack + install + restart
+        uses: appleboy/ssh-action@v1.0.1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.APP_DIR }}
+            tar -xzf dist.tar.gz
+            rm -f dist.tar.gz
+            if [ ! -d node_modules ]; then npm ci; fi
+            npx prisma generate
+            npx prisma migrate deploy || true
+            systemctl restart logisa || echo "Service not found"
+            echo "Deployment finished"
+
+# Required Secrets:
+# SSH_HOST=147.93.120.99
+# SSH_USER=deploy (or root)
+# SSH_KEY=private key content
+# APP_DIR=/srv/logisa

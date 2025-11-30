@@ -20,6 +20,15 @@ app.use(express.json({
 
 const modeSwitcher = new ModeSwitcher();
 
+app.get('/api/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV || 'development'
+  });
+});
+
 app.post('/api/process-message', async (req, res) => {
   try {
     const { message, channel, user } = req.body;
@@ -218,6 +227,11 @@ app.post('/api/payment/webhook', express.raw({ type: 'application/json' }), asyn
 app.get('/api/shipments', async (req, res) => {
   const list = await prisma.shipment.findMany({ orderBy: { createdAt: 'desc' } });
   res.json(list);
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, uptime: process.uptime(), env: process.env.NODE_ENV || 'development' });
 });
 
 app.listen(port, () => {

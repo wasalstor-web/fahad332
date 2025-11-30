@@ -1,0 +1,16 @@
+[Unit]
+Description=LogiSa Backend Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/srv/logisa
+EnvironmentFile=/srv/logisa/.env
+ExecStart=/usr/bin/npm run start:backend
+Restart=always
+RestartSec=5
+User=deploy
+Group=deploy
+
+[Install]
+WantedBy=multi-user.target
