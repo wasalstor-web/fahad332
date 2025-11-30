@@ -79,29 +79,39 @@ systemctl daemon-reload
 systemctl enable logisa
 systemctl restart logisa
 
-# Nginx config
-cat >/etc/nginx/sites-available/logisa.conf <<'EOF'
+# Nginx config with domain
+cat >/etc/nginx/sites-available/logisa.conf <<EOF
 server {
     listen 80;
-    server_name _;
+    server_name $DOMAIN www.$DOMAIN;
 
     root /srv/logisa/dist;
     index index.html;
 
     location / {
-        try_files $uri /index.html;
+        try_files \$uri /index.html;
     }
 
     location /api/ {
         proxy_pass http://127.0.0.1:3000/api/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     }
 }
 EOF
 
 ln -sf /etc/nginx/sites-available/logisa.conf /etc/nginx/sites-enabled/logisa.conf
+rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
 nginx -t && systemctl reload nginx
 
 echo "[7/7] Done. Frontend served on port 80, backend on 3000 via proxy."
+echo ""
+echo "============================================="
+echo "IMPORTANT: To enable HTTPS with Let's Encrypt:"
+echo "============================================="
+echo "1. Ensure DNS for $DOMAIN points to this server IP"
+echo "2. Install certbot: apt install -y certbot python3-certbot-nginx"
+echo "3. Run: certbot --nginx -d $DOMAIN -d www.$DOMAIN"
+echo ""
+echo "After certbot, your site will be available at https://$DOMAIN"
