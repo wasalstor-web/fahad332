@@ -79,9 +79,18 @@ export function verifyMapitWebhook(headers: Record<string, any>, rawBody: Buffer
   if (!signature) return false;
 
   try {
-    const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('base64');
+    const expectedBase64 = crypto.createHmac('sha256', secret).update(rawBody).digest('base64');
     const expectedHex = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-    return signature === expected || signature === expectedHex;
+    
+    // Use timing-safe comparison to prevent timing attacks
+    const sigBuffer = Buffer.from(signature);
+    const base64Buffer = Buffer.from(expectedBase64);
+    const hexBuffer = Buffer.from(expectedHex);
+    
+    const base64Match = sigBuffer.length === base64Buffer.length && crypto.timingSafeEqual(sigBuffer, base64Buffer);
+    const hexMatch = sigBuffer.length === hexBuffer.length && crypto.timingSafeEqual(sigBuffer, hexBuffer);
+    
+    return base64Match || hexMatch;
   } catch (err) {
     console.warn('mapit verify webhook error', err);
     return false;

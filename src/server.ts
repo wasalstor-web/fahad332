@@ -116,7 +116,9 @@ app.post('/api/payment/create', async (req, res) => {
         amount: paymentRes.amount || Number(amount),
         currency: paymentRes.currency || currency,
         status: paymentRes.status || 'created',
-        metadata: JSON.stringify(paymentRes.metadata || metadata || {}),
+        metadata: typeof (paymentRes.metadata || metadata) === 'string' 
+          ? (paymentRes.metadata || metadata) 
+          : JSON.stringify(paymentRes.metadata || metadata || {}),
       }});
     }
 
@@ -151,6 +153,9 @@ app.post('/api/payment/send-link', async (req, res) => {
         amount: Number(amount),
         currency,
         status: paymentRes.status || 'created',
+        trackingNumber,
+        channel,
+        contact,
         metadata: JSON.stringify({ trackingNumber, channel, contact })
       }});
     }
@@ -193,24 +198,13 @@ app.post('/api/payment/webhook', express.raw({ type: 'application/json' }), asyn
       // mark shipment as Paid and send shipping document automatically
       await prisma.shipment.updateMany({ where: { trackingNumber: tracking }, data: { status: 'Paid' } });
 
-      // find related contacts from payments metadata if available
-      const payments = await prisma.payment.findMany();
-      const payment = payments.find(p => {
-        try {
-          const meta = p.metadata ? JSON.parse(p.metadata) : {};
-          return meta.trackingNumber === tracking;
-        } catch { return false; }
-      });
-      if (payment) {
-        const meta = payment.metadata ? JSON.parse(payment.metadata) : {};
-        const channel = meta.channel;
-        const contact = meta.contact;
+      // find related contacts from payments using indexed trackingNumber column
+      const payment = await prisma.payment.findFirst({ where: { trackingNumber: tracking } });
+      if (payment && payment.channel && payment.contact) {
         const shipment = await prisma.shipment.findFirst({ where: { trackingNumber: tracking } });
         const docLink = `https://your-cdn.example.com/shipping-docs/${tracking}.pdf`;
         const message = `تم استلام الدفعة لرقم الشحنة ${tracking}. يمكنك تنزيل بوليصتك: ${docLink}`;
-        if (channel && contact) {
-          await sendNotification(channel, contact, message, { shipment, docLink });
-        }
+        await sendNotification(payment.channel, payment.contact, message, { shipment, docLink });
       }
     }
 

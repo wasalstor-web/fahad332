@@ -28,17 +28,22 @@ model Shipment {
 }
 
 model Payment {
-  id         String   @id @default(cuid())
-  provider   String
-  providerId String   @unique
-  amount     Float
-  currency   String   @default("SAR")
-  status     String   @default("created")
-  metadata   String?  // JSON stored as string for SQLite compatibility
-  shipmentId String?
-  shipment   Shipment? @relation(fields: [shipmentId], references: [id])
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id             String   @id @default(cuid())
+  provider       String
+  providerId     String   @unique
+  amount         Float
+  currency       String   @default("SAR")
+  status         String   @default("created")
+  trackingNumber String?  // For efficient lookups
+  channel        String?  // Notification channel
+  contact        String?  // Contact info
+  metadata       String?  // JSON stored as string for SQLite compatibility
+  shipmentId     String?
+  shipment       Shipment? @relation(fields: [shipmentId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([trackingNumber])
 }
 
 model NotificationLog {
