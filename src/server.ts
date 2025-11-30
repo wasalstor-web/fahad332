@@ -1,10 +1,10 @@
 import express from 'express';
 import cors from 'cors';
-import { ModeSwitcher } from '../services/automatic/modeSwitcher';
-import { verifyMapitWebhook } from '../services/providers/mapit';
-import { createMyfatoraPayment, verifyMyfatoraWebhook } from '../services/providers/myfatora';
-import { prisma } from './prismaClient';
-import { sendNotification } from './services/notifications';
+import { ModeSwitcher } from '../services/automatic/modeSwitcher.js';
+import { verifyMapitWebhook } from '../services/providers/mapit.js';
+import { createMyfatoraPayment, verifyMyfatoraWebhook } from '../services/providers/myfatora.js';
+import { prisma } from './prismaClient.js';
+import { sendNotification } from '../services/notifications/index.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -77,7 +77,7 @@ app.post('/api/providers/mapit/create', async (req, res) => {
     const shipment = req.body.shipment;
     if (!shipment) return res.status(400).json({ error: 'shipment required' });
 
-    const { createMapitShipment } = await import('../services/providers/mapit');
+    const { createMapitShipment } = await import('../services/providers/mapit.js');
     const mapitRes = await createMapitShipment(shipment);
 
     if (mapitRes && mapitRes.trackingNumber) {
@@ -116,7 +116,7 @@ app.post('/api/payment/create', async (req, res) => {
         amount: paymentRes.amount || Number(amount),
         currency: paymentRes.currency || currency,
         status: paymentRes.status || 'created',
-        metadata: paymentRes.metadata || metadata || {},
+        metadata: JSON.stringify(paymentRes.metadata || metadata || {}),
       }});
     }
 
@@ -151,7 +151,7 @@ app.post('/api/payment/send-link', async (req, res) => {
         amount: Number(amount),
         currency,
         status: paymentRes.status || 'created',
-        metadata: { trackingNumber, channel, contact }
+        metadata: JSON.stringify({ trackingNumber, channel, contact })
       }});
     }
 
@@ -186,7 +186,7 @@ app.post('/api/payment/webhook', express.raw({ type: 'application/json' }), asyn
     const status = event?.data?.status || event?.status || 'unknown';
 
     if (providerId) {
-      await prisma.payment.updateMany({ where: { providerId }, data: { status, metadata: { ...event?.data?.metadata } } });
+      await prisma.payment.updateMany({ where: { providerId }, data: { status, metadata: JSON.stringify(event?.data?.metadata || {}) } });
     }
 
     if (tracking && status === 'paid') {
@@ -194,10 +194,17 @@ app.post('/api/payment/webhook', express.raw({ type: 'application/json' }), asyn
       await prisma.shipment.updateMany({ where: { trackingNumber: tracking }, data: { status: 'Paid' } });
 
       // find related contacts from payments metadata if available
-      const payment = await prisma.payment.findFirst({ where: { metadata: { path: ['trackingNumber'], equals: tracking } } as any });
+      const payments = await prisma.payment.findMany();
+      const payment = payments.find(p => {
+        try {
+          const meta = p.metadata ? JSON.parse(p.metadata) : {};
+          return meta.trackingNumber === tracking;
+        } catch { return false; }
+      });
       if (payment) {
-        const channel = (payment.metadata as any).channel;
-        const contact = (payment.metadata as any).contact;
+        const meta = payment.metadata ? JSON.parse(payment.metadata) : {};
+        const channel = meta.channel;
+        const contact = meta.contact;
         const shipment = await prisma.shipment.findFirst({ where: { trackingNumber: tracking } });
         const docLink = `https://your-cdn.example.com/shipping-docs/${tracking}.pdf`;
         const message = `تم استلام الدفعة لرقم الشحنة ${tracking}. يمكنك تنزيل بوليصتك: ${docLink}`;

@@ -1,4 +1,4 @@
-import { Shipment } from '../../types';
+import { Shipment } from '../../types.js';
 
 interface INlpEngine {
   detectIntent(text: string): Promise<{ intent: string; confidence: number }>; 

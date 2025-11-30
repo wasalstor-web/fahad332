@@ -1,0 +1,59 @@
+name: Smoke Tests
+
+on:
+  push:
+    branches:
+      - fahad
+  pull_request:
+    branches:
+      - fahad
+
+jobs:
+  smoke-tests:
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: "file:./test.db"
+      PORT: 3001
+      CORS_ORIGIN: "*"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run database migrations
+        run: npx prisma migrate deploy || npx prisma db push
+
+      - name: Start backend server
+        run: |
+          npm run dev:backend &
+          echo $! > /tmp/server.pid
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_TEST_CHAT_ID: ${{ secrets.TELEGRAM_TEST_CHAT_ID }}
+
+      - name: Run smoke tests
+        run: |
+          chmod +x scripts/test/smoke.sh
+          ./scripts/test/smoke.sh
+        env:
+          BASE_URL: http://localhost:3001
+
+      - name: Stop backend server
+        if: always()
+        run: |
+          if [ -f /tmp/server.pid ]; then
+            kill $(cat /tmp/server.pid) || true
+          fi

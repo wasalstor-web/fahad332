@@ -1,0 +1,55 @@
+# Render Blueprint for LogiSa Backend
+# See: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: logisa-backend
+    env: node
+    region: frankfurt
+    plan: free
+    buildCommand: npm ci && npx prisma generate && npx prisma migrate deploy
+    startCommand: npm run start:backend
+    healthCheckPath: /api/shipments
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        sync: false  # Set in Render dashboard
+      - key: GEMINI_API_KEY
+        sync: false  # Set in Render dashboard
+      - key: MAPIT_API_KEY
+        sync: false
+      - key: MAPIT_API_URL
+        sync: false
+      - key: MAPIT_WEBHOOK_SECRET
+        sync: false
+      - key: MYFATORA_API_KEY
+        sync: false
+      - key: MYFATORA_API_URL
+        sync: false
+      - key: MYFATORA_WEBHOOK_SECRET
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: CORS_ORIGIN
+        value: "*"
+
+databases:
+  - name: logisa-db
+    plan: free
+    databaseName: logisa
+    user: logisa
+
+# Environment Variables Required (set manually in dashboard):
+# 
+# DATABASE_URL - Connection string from the database above
+# GEMINI_API_KEY - Google AI Studio API key
+# MAPIT_API_KEY - Mapit shipping provider API key
+# MAPIT_API_URL - Mapit API endpoint URL
+# MAPIT_WEBHOOK_SECRET - Secret for verifying Mapit webhooks
+# MYFATORA_API_KEY - MyFatora payment API key
+# MYFATORA_API_URL - MyFatora API endpoint URL
+# MYFATORA_WEBHOOK_SECRET - Secret for verifying MyFatora webhooks
+# TELEGRAM_BOT_TOKEN - Telegram bot token for notifications
