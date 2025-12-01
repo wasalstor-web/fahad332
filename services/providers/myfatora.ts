@@ -61,10 +61,28 @@ export function verifyMyfatoraWebhook(headers: Record<string, any>, rawBody: Buf
   if (!signature) return false;
 
   try {
-    const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('base64');
-    // some providers use hex digest - check both
+    const expectedBase64 = crypto.createHmac('sha256', secret).update(rawBody).digest('base64');
     const expectedHex = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-    return signature === expected || signature === expectedHex;
+    
+    // Use timing-safe comparison - pad to same length to avoid timing leaks
+    const sigBuffer = Buffer.from(signature);
+    const base64Buffer = Buffer.from(expectedBase64);
+    const hexBuffer = Buffer.from(expectedHex);
+    
+    // Constant-time comparison with length padding
+    const maxLen = Math.max(sigBuffer.length, base64Buffer.length, hexBuffer.length);
+    const paddedSig = Buffer.alloc(maxLen);
+    const paddedBase64 = Buffer.alloc(maxLen);
+    const paddedHex = Buffer.alloc(maxLen);
+    
+    sigBuffer.copy(paddedSig);
+    base64Buffer.copy(paddedBase64);
+    hexBuffer.copy(paddedHex);
+    
+    const base64Match = crypto.timingSafeEqual(paddedSig, paddedBase64) && sigBuffer.length === base64Buffer.length;
+    const hexMatch = crypto.timingSafeEqual(paddedSig, paddedHex) && sigBuffer.length === hexBuffer.length;
+    
+    return base64Match || hexMatch;
   } catch (err) {
     console.warn('verify webhook error', err);
     return false;
