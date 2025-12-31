@@ -16,9 +16,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, lang 
     <div className={`w-64 bg-slate-900 text-white h-screen flex flex-col fixed top-0 overflow-y-auto ${isRtl ? 'right-0' : 'left-0'}`}>
       <div className="p-6 border-b border-slate-800">
         <h1 className="text-2xl font-bold tracking-tight text-blue-400">LogiSa</h1>
-        <p className="text-xs text-slate-400 mt-1">
-          {lang === 'ar' ? 'منصة الخدمات اللوجستية الموحدة' : 'Unified Logistics Platform'}
-        </p>
+        <div className="flex justify-between items-center mt-1">
+            <p className="text-xs text-slate-400">
+            {lang === 'ar' ? 'منصة الخدمات اللوجستية' : 'Unified Platform'}
+            </p>
+            <span className="text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-green-400 font-mono">v2.3-Live</span>
+        </div>
       </div>
       
       <nav className="flex-1 p-4 space-y-2">

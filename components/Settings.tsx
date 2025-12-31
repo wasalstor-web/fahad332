@@ -16,7 +16,8 @@ export const Settings: React.FC<SettingsProps> = ({ lang }) => {
     tabs: {
         profile: { en: 'Profile', ar: 'الملف الشخصي' },
         users: { en: 'Team Management', ar: 'إدارة الفريق' },
-        general: { en: 'General Preferences', ar: 'تفضيلات عامة' }
+        general: { en: 'General Preferences', ar: 'تفضيلات عامة' },
+        deployment: { en: 'Deployment & Domains', ar: 'النشر والنطاقات' }
     },
     usersTable: {
         name: { en: 'Name', ar: 'الاسم' },
@@ -31,11 +32,18 @@ export const Settings: React.FC<SettingsProps> = ({ lang }) => {
         autoRefund: { en: 'Auto-refund Failed Orders', ar: 'استرداد تلقائي للطلبات الفاشلة' },
         currency: { en: 'Default Currency', ar: 'العملة الافتراضية' },
         language: { en: 'System Language', ar: 'لغة النظام' }
+    },
+    deployment: {
+        domain: { en: 'Primary Domain', ar: 'النطاق الأساسي' },
+        status: { en: 'Status', ar: 'الحالة' },
+        version: { en: 'Current Version', ar: 'الإصدار الحالي' },
+        lastUpdate: { en: 'Last Update', ar: 'آخر تحديث' },
+        ssl: { en: 'SSL Certificate', ar: 'شهادة SSL' }
     }
   };
 
   const t = (key: keyof typeof translations) => translations[key][lang];
-  const [activeTab, setActiveTab] = useState<'profile' | 'users' | 'general'>('users');
+  const [activeTab, setActiveTab] = useState<'profile' | 'users' | 'general' | 'deployment'>('users');
 
   return (
     <div className="space-y-6">
@@ -46,12 +54,12 @@ export const Settings: React.FC<SettingsProps> = ({ lang }) => {
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
-        <div className="flex -mb-px space-x-8 rtl:space-x-reverse">
-            {(['profile', 'users', 'general'] as const).map(tab => (
+        <div className="flex -mb-px space-x-8 rtl:space-x-reverse overflow-x-auto">
+            {(['profile', 'users', 'general', 'deployment'] as const).map(tab => (
                 <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
                         activeTab === tab 
                         ? 'border-blue-500 text-blue-600' 
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -160,6 +168,93 @@ export const Settings: React.FC<SettingsProps> = ({ lang }) => {
                     </div>
                 </div>
              </div>
+        )}
+
+        {/* DEPLOYMENT TAB (Simulated Git Pull Result) */}
+        {activeTab === 'deployment' && (
+            <div className="space-y-6">
+                <div className="bg-slate-900 text-white p-6 rounded-xl shadow-md">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <h4 className="text-lg font-bold mb-1">Production Environment</h4>
+                            <p className="text-slate-400 text-sm">Riyadh Region (me-central1)</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                             <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
+                             <span className="text-green-400 font-bold text-sm">Online</span>
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                        <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                            <label className="text-xs text-slate-400 block mb-1">{translations.deployment.domain[lang]}</label>
+                            <div className="font-mono text-blue-300 text-lg">mubasatplatform.com</div>
+                            <div className="mt-2 flex gap-2">
+                                <span className="text-[10px] bg-green-900 text-green-300 px-2 py-0.5 rounded border border-green-700">
+                                    🔒 {translations.deployment.ssl[lang]}: Valid
+                                </span>
+                            </div>
+                        </div>
+                         <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                            <label className="text-xs text-slate-400 block mb-1">Git Repository</label>
+                            <div className="flex items-center gap-2">
+                                <span className="font-mono text-orange-300">main</span>
+                                <span className="text-slate-500 text-xs">branch</span>
+                            </div>
+                            <div className="mt-1 text-xs text-slate-500">
+                                Commit: <span className="font-mono text-white">f9d1b4</span> (Final Polish & Sync)
+                            </div>
+                             <div className="mt-2 text-[10px] text-slate-400">
+                                {translations.deployment.lastUpdate[lang]}: Just now
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                        <h4 className="font-bold text-gray-800 mb-2">CI/CD Pipeline</h4>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between text-sm">
+                                <span>Build</span>
+                                <span className="text-green-600">✓ Passing</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <span>Tests</span>
+                                <span className="text-green-600">✓ 42/42 Passed</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <span>Deploy</span>
+                                <span className="text-green-600">✓ Success</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                        <h4 className="font-bold text-gray-800 mb-2">System Resources</h4>
+                        <div className="space-y-2">
+                            <div>
+                                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                    <span>CPU Usage</span>
+                                    <span>15%</span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                    <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: '15%' }}></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                    <span>Memory</span>
+                                    <span>48%</span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                    <div className="bg-purple-600 h-1.5 rounded-full" style={{ width: '48%' }}></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         )}
 
         {/* PROFILE TAB (Placeholder) */}
