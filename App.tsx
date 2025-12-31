@@ -12,6 +12,7 @@ import { CRM } from './components/CRM';
 import { Accounting } from './components/Accounting';
 import { Tracking } from './components/Tracking';
 import { Support } from './components/Support';
+import { Warehouse } from './components/Warehouse';
 import { Language, Shipment } from './types';
 import { MOCK_SHIPMENTS } from './constants';
 
@@ -41,6 +42,8 @@ const App: React.FC = () => {
         return <Tracking lang={language} />;
       case '/support':
         return <Support lang={language} />;
+      case '/warehouse':
+        return <Warehouse lang={language} />;
       case '/store':
         return (
           <div className="flex flex-col items-center justify-center h-96 text-gray-400 bg-white rounded-xl border border-gray-100">

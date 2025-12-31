@@ -119,6 +119,40 @@ export interface SupportTicket {
     date: string;
 }
 
+export interface Warehouse {
+  id: string
+  name: string
+  city: string
+  address: string
+  manager: string
+  phone: string
+  status: "active" | "inactive"
+  capacity: number
+  currentStock: number
+}
+
+export interface WarehouseAlert {
+  id: string
+  warehouseId: string
+  itemId: string
+  alertType: "low_stock" | "high_stock" | "expiring"
+  message: string
+  severity: "low" | "medium" | "high"
+  resolved: boolean
+}
+
+export interface InventoryItem {
+  id: string
+  warehouseId: string
+  sku: string
+  name: string
+  quantity: number
+  minThreshold: number
+  maxThreshold: number
+  unitPrice: number
+  lastUpdated: string
+}
+
 export interface Invoice {
     id: string;
     customerName: string;

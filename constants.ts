@@ -152,6 +152,111 @@ export const NAV_ITEMS = [
   { name: 'Accounting', nameAr: 'المحاسبة', path: '/accounting' }, // New
   { name: 'Integrations', nameAr: 'التكاملات والربط', path: '/integrations' },
   { name: 'Support', nameAr: 'الدعم الفني', path: '/support' }, // New
+  { name: 'Warehouse', nameAr: 'المستودعات', path: '/warehouse' }, // New
   { name: 'AI Advisor', nameAr: 'المستشار الذكي', path: '/advisor' },
   { name: 'Settings', nameAr: 'الإعدادات', path: '/settings' },
 ];
+
+export const MOCK_WAREHOUSES: Warehouse[] = [
+  {
+    id: "W-001",
+    name: "مستودع الرياض الرئيسي",
+    city: "Riyadh",
+    address: "طريق الملك فهد، الرياض",
+    manager: "أحمد محمد",
+    phone: "+966500000001",
+    status: "active",
+    capacity: 10000,
+    currentStock: 7500,
+  },
+  {
+    id: "W-002",
+    name: "مستودع جدة",
+    city: "Jeddah",
+    address: "شارع المكة، جدة",
+    manager: "سارة علي",
+    phone: "+966500000002",
+    status: "active",
+    capacity: 5000,
+    currentStock: 3200,
+  },
+  {
+    id: "W-003",
+    name: "مستودع الدمام",
+    city: "Dammam",
+    address: "طريق الظهران، الدمام",
+    manager: "خالد عبدالله",
+    phone: "+966500000003",
+    status: "active",
+    capacity: 8000,
+    currentStock: 2500,
+  },
+]
+
+export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
+  {
+    id: "I-001",
+    warehouseId: "W-001",
+    sku: "SKU-001",
+    name: "صناديق الشحن الصغيرة",
+    quantity: 500,
+    minThreshold: 100,
+    maxThreshold: 1000,
+    unitPrice: 2.5,
+    lastUpdated: "2023-10-30",
+  },
+  {
+    id: "I-002",
+    warehouseId: "W-001",
+    sku: "SKU-002",
+    name: "أشرطة الشحن",
+    quantity: 45,
+    minThreshold: 200,
+    maxThreshold: 500,
+    unitPrice: 0.5,
+    lastUpdated: "2023-10-30",
+  },
+  {
+    id: "I-003",
+    warehouseId: "W-002",
+    sku: "SKU-003",
+    name: "فقاعات الحماية",
+    quantity: 3000,
+    minThreshold: 500,
+    maxThreshold: 5000,
+    unitPrice: 1.0,
+    lastUpdated: "2023-10-30",
+  },
+  {
+    id: "I-004",
+    warehouseId: "W-003",
+    sku: "SKU-004",
+    name: "أكياس حماية",
+    quantity: 2500,
+    minThreshold: 300,
+    maxThreshold: 3000,
+    unitPrice: 0.8,
+    lastUpdated: "2023-10-30",
+  },
+]
+
+export const MOCK_WAREHOUSE_ALERTS: WarehouseAlert[] = [
+  {
+    id: "A-001",
+    warehouseId: "W-001",
+    itemId: "I-002",
+    alertType: "low_stock",
+    message: "مستوى أشرطة الشحن منخفض جداً (45 من 200)",
+    severity: "high",
+    resolved: false,
+  },
+  {
+    id: "A-002",
+    warehouseId: "W-002",
+    itemId: "I-003",
+    alertType: "high_stock",
+    message: "مستوى فقاعات الحماية مرتفع جداً",
+    severity: "low",
+    resolved: false,
+  },
+]
